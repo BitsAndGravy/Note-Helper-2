@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Monthly Calendar</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .calendar {
+            width: 350px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Calendar Header */
+        .calendar-header {
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .calendar-header button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .calendar-header button:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        /* Calendar Body Grid */
+        .calendar-body {
+            padding: 15px;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+        }
+
+        .days span {
+            padding: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .days span:hover:not(.empty) {
+            background-color: #e9ecef;
+        }
+
+        /* Special States */
+        .days .empty {
+            cursor: default;
+        }
+
+        .days .today {
+            background-color: #007bff;
+            color: white !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calendar">
+        <div class="calendar-header">
+            <button id="prev-btn">&lt;</button>
+            <button id="today-btn">Today</button>
+            <h2 id="month-year-display"></h2>
+            <button id="next-btn">&gt;</button>
+        </div>
+        <div class="calendar-body">
+            <div class="weekdays">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="days" id="days-container"></div>
+        </div>
+    </div>
+    <div>
+    <form id="claim-rejection-form">
+        <!-- Group 1: Core Formulary/Utilization Rejections (Max 1) -->
+        <fieldset>
+            <legend>Primary Formulary / Utilization Restriction (Select One)</legend>
+            
+            <label>
+            <input type="radio" name="primary_reject" value="none" checked>
+            <span>No Prior Auth / Step / Formulary Reject</span>
+            </label><br>
+            
+            <label>
+            <input type="radio" name="primary_reject" value="75">
+            <span><strong>Reject 75:</strong> Prior Authorization Required</span>
+            </label><br>
+            
+            <label>
+            <input type="radio" name="primary_reject" value="70">
+            <span><strong>Reject 70:</strong> Non-Formulary</span>
+            </label><br>
+            
+            <label>
+            <input type="radio" name="primary_reject" value="608">
+            <span><strong>Reject 608:</strong> Step Therapy Required</span>
+            </label>
+        </fieldset>
+
+        <br>
+
+        <!-- Group 2: Quantity Limitations (Can be standalone or combined) -->
+        <fieldset>
+            <legend>Quantity & Supply Limitations</legend>
+            <label>
+            <input type="checkbox" name="reject_76" value="76">
+            <span><strong>Reject 76:</strong> Quantity Limit Exceeded</span>
+            </label>
+        </fieldset>
+
+        <br>
+        <button type="submit">Submit Claim Rejection Data</button>
+    </form>
+    </div>
+
+
+    <script>
+        const monthYearDisplay = document.getElementById('month-year-display');
+        const daysContainer = document.getElementById('days-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        const months = [
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        // Track current date view
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+
+        function renderCalendar() {
+            // Get first day of the month (0 = Sunday, 1 = Monday...)
+            const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+            // Get total days in the current month
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Set header title
+            monthYearDisplay.textContent = `${months[currentMonth]} ${currentYear}`;
+            
+            // Clear prior days
+            daysContainer.innerHTML = '';
+
+            // 1. Render empty padding blocks for days before the 1st of the month
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptySpan = document.createElement('span');
+                emptySpan.classList.add('empty');
+                daysContainer.appendChild(emptySpan);
+            }
+
+            // 2. Render actual days of the month
+            for (let day = 1; day <= totalDays; day++) {
+                const daySpan = document.createElement('span');
+                daySpan.textContent = day;
+
+                // Highlight today's date if it matches the actual calendar date
+                const today = new Date();
+                if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+                    daySpan.classList.add('today');
+                }
+
+                // Make dates clickable
+                daySpan.addEventListener('click', () => alert(`You clicked ${months[currentMonth]} ${day}, ${currentYear}`));
+
+                daysContainer.appendChild(daySpan);
+            }
+        }
+
+        // Navigation controls
+        prevBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById('today-btn').addEventListener('click', () => {
+            currentDate = new Date(); // Reset to today's date
+            currentMonth = currentDate.getMonth();
+            currentYear = currentDate.getFullYear();
+            renderCalendar(); // Function that redraws your calendar UI
+        });
+
+        // Initialize calendar on load
+        renderCalendar();
+
+        
+        
+        document.getElementById('claim-rejection-form').addEventListener('submit', function(event) { 
+            const primaryReject = document.querySelector('input[name="primary_reject"]:checked').value;
+            const hasQuantityLimit = document.querySelector('input[name="reject_76"]').checked;
+
+            // Enforce that at least one actionable reject code is flagged
+            if (primaryReject === 'none' && !hasQuantityLimit) {
+                event.preventDefault(); // Block form submission
+                
+                alert('Validation Error: You must select at least one rejection code (Reject 75, 70, 608, or 76) to log this claim issue.');
+            }
+            });
+    </script>
+</body>
+</html>
